@@ -1,0 +1,597 @@
+{
+  "uid": "@@UID_PREFIX@@containers-hosts",
+  "title": "@@TITLE_PREFIX@@Containers & Hosts",
+  "description": "Container CPU / memory / network (cAdvisor) and host health (node-exporter). For Docker Compose, Nomad and plain hosts.",
+  "tags": [
+    "observability-kit",
+    "@@APP_NAME@@"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values(container_memory_working_set_bytes{name=~\"@@CONTAINER_REGEX@@\"}, name)",
+          "refId": "container"
+        },
+        "definition": "label_values(container_memory_working_set_bytes{name=~\"@@CONTAINER_REGEX@@\"}, name)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "cadvisor",
+        "label": "cAdvisor host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values(container_memory_working_set_bytes{name=~\"@@CONTAINER_REGEX@@\"}, instance)",
+          "refId": "cadvisor"
+        },
+        "definition": "label_values(container_memory_working_set_bytes{name=~\"@@CONTAINER_REGEX@@\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "host",
+        "label": "Host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values(node_uname_info{job=\"node-exporter\"}, instance)",
+          "refId": "host"
+        },
+        "definition": "label_values(node_uname_info{job=\"node-exporter\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Containers ($container)",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU (cores)",
+      "id": 2,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"$container\", instance=~\"$cadvisor\"}[$__rate_interval]))",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory working set",
+      "id": 3,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (name) (container_memory_working_set_bytes{name=~\"$container\", instance=~\"$cadvisor\"})",
+          "legendFormat": "{{name}}"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "B",
+          "expr": "sum by (name) (container_spec_memory_limit_bytes{name=~\"$container\", instance=~\"$cadvisor\"} > 0)",
+          "legendFormat": "{{name}} limit"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Network rx (+) / tx (-)",
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name=~\"$container\", instance=~\"$cadvisor\"}[$__rate_interval]))",
+          "legendFormat": "{{name}} rx"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "B",
+          "expr": "-sum by (name) (rate(container_network_transmit_bytes_total{name=~\"$container\", instance=~\"$cadvisor\"}[$__rate_interval]))",
+          "legendFormat": "{{name}} tx"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Restarts (container start time changed)",
+      "id": 5,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "Number of times the container was (re)started in the last hour, from cAdvisor.",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (name) (changes(container_start_time_seconds{name=~\"$container\", instance=~\"$cadvisor\"}[1h]))",
+          "legendFormat": "{{name}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Hosts ($host)",
+      "id": 6,
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Host CPU %",
+      "id": 7,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"node-exporter\", instance=~\"$host\", mode=\"idle\"}[$__rate_interval])))",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Host memory used %",
+      "id": 8,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"node-exporter\", instance=~\"$host\"} / node_memory_MemTotal_bytes{job=\"node-exporter\", instance=~\"$host\"})",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Disk used % (per mount)",
+      "id": 9,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"node-exporter\", instance=~\"$host\", fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{job=\"node-exporter\", instance=~\"$host\", fstype!~\"tmpfs|overlay|squashfs\"})",
+          "legendFormat": "{{instance}} {{mountpoint}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Load average (1m) per CPU",
+      "id": 10,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "node_load1{job=\"node-exporter\", instance=~\"$host\"} / on(instance) count by (instance) (node_cpu_seconds_total{job=\"node-exporter\", instance=~\"$host\", mode=\"idle\"})",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

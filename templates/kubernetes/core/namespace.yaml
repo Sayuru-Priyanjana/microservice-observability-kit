@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: @@STACK_NAME@@
+  # To place it in a Rancher project, add the annotation
+  #   field.cattle.io/projectId: <cluster-id>:<project-id>
+  # (or use "Move" in the Rancher UI).

@@ -1,0 +1,4 @@
+# Shell scripts, templates and settings must keep LF line endings (also when checked out on Windows):
+# a CR breaks bash, YAML values and rendered configs.
+* text=auto eol=lf
+*.png binary

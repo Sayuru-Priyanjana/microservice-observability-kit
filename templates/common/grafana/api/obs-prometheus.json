@@ -1,0 +1,14 @@
+{
+  "name": "Prometheus (@@STACK_NAME@@)",
+  "type": "prometheus",
+  "uid": "obs-prometheus",
+  "url": "@@PROMETHEUS_URL_FOR_GRAFANA@@",
+  "access": "proxy",
+  "jsonData": {
+    "timeInterval": "15s",
+    "exemplarTraceIdDestinations": [
+      { "name": "trace_id", "datasourceUid": "obs-tempo" },
+      { "name": "traceID", "datasourceUid": "obs-tempo" }
+    ]
+  }
+}

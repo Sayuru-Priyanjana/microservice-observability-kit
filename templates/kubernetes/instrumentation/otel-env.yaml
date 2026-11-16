@@ -1,0 +1,14 @@
+- { name: OTEL_SERVICE_NAME, value: @@SERVICE@@ }
+- name: OTEL_NODE_NAME
+  valueFrom:
+    fieldRef: { fieldPath: spec.nodeName }
+- { name: OTEL_RESOURCE_ATTRIBUTES, value: "deployment.environment=@@ENVIRONMENT@@,host.name=$(OTEL_NODE_NAME),k8s.node.name=$(OTEL_NODE_NAME)" }
+- { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://otel-gateway.@@STACK_NAME@@.svc:4317" }
+- { name: OTEL_EXPORTER_OTLP_PROTOCOL, value: grpc }
+- { name: OTEL_TRACES_EXPORTER, value: otlp }
+- { name: OTEL_METRICS_EXPORTER, value: otlp }
+- { name: OTEL_LOGS_EXPORTER, value: none }
+- { name: OTEL_PROPAGATORS, value: "tracecontext,baggage" }
+- { name: OTEL_METRIC_EXPORT_INTERVAL, value: "15000" }
+- { name: OTEL_TRACES_SAMPLER, value: @@OTEL_TRACES_SAMPLER@@ }
+- { name: OTEL_TRACES_SAMPLER_ARG, value: "@@TRACE_SAMPLE_RATIO@@" }

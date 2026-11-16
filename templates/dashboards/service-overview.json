@@ -1,0 +1,901 @@
+{
+  "uid": "@@UID_PREFIX@@service-overview",
+  "title": "@@TITLE_PREFIX@@Service Overview",
+  "description": "Request rate, errors, latency and runtime health from the metrics the OTel agents send. Works on any platform.",
+  "tags": [
+    "observability-kit",
+    "@@APP_NAME@@"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values({__name__=~\"http_server_request_duration_seconds_count|http_server_duration_milliseconds_count|jvm_memory_used(_bytes)?|jvm_thread_count\", service_name=~\"@@SERVICE_REGEX@@\"}, service_name)",
+          "refId": "service"
+        },
+        "definition": "label_values({__name__=~\"http_server_request_duration_seconds_count|http_server_duration_milliseconds_count|jvm_memory_used(_bytes)?|jvm_thread_count\", service_name=~\"@@SERVICE_REGEX@@\"}, service_name)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values({__name__=~\"http_server_request_duration_seconds_count|http_server_duration_milliseconds_count|jvm_memory_used(_bytes)?|jvm_thread_count\", service_name=~\"$service\"}, instance)",
+          "refId": "instance"
+        },
+        "definition": "label_values({__name__=~\"http_server_request_duration_seconds_count|http_server_duration_milliseconds_count|jvm_memory_used(_bytes)?|jvm_thread_count\", service_name=~\"$service\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview ($service)",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Services reporting",
+      "id": 2,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "Services that sent metrics in the last 5 minutes (through the OTel gateway).",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "count(count by (service_name) ({__name__=~\"http_server_request_duration_seconds_count|http_server_duration_milliseconds_count|jvm_memory_used(_bytes)?|process_runtime_.*\", service_name=~\"$service\"}))",
+          "instant": false
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Requests / s",
+      "id": 3,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "(sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])) or vector(0)) + (sum (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])) or vector(0))",
+          "instant": false
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Errors (5xx) %",
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * ((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\", http_response_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) + (sum (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$instance\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0))) / clamp_min((sum (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])) or vector(0)) + (sum (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])) or vector(0)), 1e-9)",
+          "instant": false
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "p95 latency",
+      "id": 5,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))) or (histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))) / 1000)",
+          "instant": false
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "HTTP server (incoming requests)",
+      "id": 6,
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests / s per service",
+      "id": 7,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])) or sum by (service_name) (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{service_name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors (5xx) / s per service",
+      "id": 8,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\", http_response_status_code=~\"5..\"}[$__rate_interval])) or sum by (service_name) (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$instance\", http_status_code=~\"5..\"}[$__rate_interval]))",
+          "legendFormat": "{{service_name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "p95 latency per service",
+      "id": 9,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (service_name, le) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))) or (histogram_quantile(0.95, sum by (service_name, le) (rate(http_server_duration_milliseconds_bucket{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))) / 1000)",
+          "legendFormat": "{{service_name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests / s per route (top 15)",
+      "id": 10,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "http_route is only set by instrumentations that know the route template (Spring, JAX-RS, Express, ...).",
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "topk(15, sum by (service_name, http_route) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval])))",
+          "legendFormat": "{{service_name}} {{http_route}}"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Runtime: JVM (Java agent)",
+      "id": 11,
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Heap used",
+      "id": 12,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name, instance) ({__name__=~\"jvm_memory_used(_bytes)?\", service_name=~\"$service\", instance=~\"$instance\", jvm_memory_type=\"heap\"})",
+          "legendFormat": "{{service_name}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Heap used % of max",
+      "id": 13,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "Close to 100% for long = too little heap (GC storms, OutOfMemoryError).",
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * sum by (service_name, instance) ({__name__=~\"jvm_memory_used(_bytes)?\", service_name=~\"$service\", instance=~\"$instance\", jvm_memory_type=\"heap\"}) / sum by (service_name, instance) ({__name__=~\"jvm_memory_limit(_bytes)?\", service_name=~\"$service\", instance=~\"$instance\", jvm_memory_type=\"heap\"})",
+          "legendFormat": "{{service_name}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM CPU %",
+      "id": 14,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "CPU used by the JVM process, % of the CPUs available to it.",
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "100 * avg by (service_name, instance) ({__name__=~\"jvm_cpu_recent_utilization(_ratio)?\", service_name=~\"$service\", instance=~\"$instance\"})",
+          "legendFormat": "{{service_name}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC time (s per s)",
+      "id": 15,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "Share of time spent in garbage collection; above ~0.1 the service is memory-starved.",
+      "gridPos": {
+        "x": 12,
+        "y": 31,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name, jvm_gc_name) (rate({__name__=~\"jvm_gc_duration(_seconds)?_sum\", service_name=~\"$service\", instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{service_name}} {{jvm_gc_name}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Threads",
+      "id": 16,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name, instance) ({__name__=~\"jvm_thread_count\", service_name=~\"$service\", instance=~\"$instance\"})",
+          "legendFormat": "{{service_name}} {{instance}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "DB connection pool: used / max",
+      "id": 17,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "description": "Hikari / c3p0 / DBCP pools. Used = max for long means requests wait for a connection.",
+      "gridPos": {
+        "x": 12,
+        "y": 39,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (service_name, pool_name) ({__name__=~\"db_client_connections?_usage\", service_name=~\"$service\", instance=~\"$instance\", state=\"used\"})",
+          "legendFormat": "{{service_name}} {{pool_name}} used"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "refId": "B",
+          "expr": "sum by (service_name, pool_name) ({__name__=~\"db_client_connections?_max\", service_name=~\"$service\", instance=~\"$instance\"})",
+          "legendFormat": "{{service_name}} {{pool_name}} max"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

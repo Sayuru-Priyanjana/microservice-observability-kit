@@ -1,0 +1,11 @@
+# Optional extra fields for container example-api, applied in the same rollout as the agent
+# (kubernetes only). The agent adds 10-60 s of startup time; a startupProbe stops a short liveness
+# probe from killing the pod while it starts. Use the app's own health endpoint and port.
+# A file <deployment>.init.yaml adds fields to the agent's init container instead (e.g. a
+# securityContext when the pod requires runAsNonRoot).
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  periodSeconds: 10
+  failureThreshold: 60

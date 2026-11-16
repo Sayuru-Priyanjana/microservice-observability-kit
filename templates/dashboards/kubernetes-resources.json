@@ -1,0 +1,1075 @@
+{
+  "uid": "@@UID_PREFIX@@service-monitoring-k8s",
+  "title": "@@TITLE_PREFIX@@Service Monitoring (Kubernetes)",
+  "tags": [
+    "services",
+    "opentelemetry",
+    "kubernetes",
+    "@@APP_NAME@@"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "label": "Host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values(kube_pod_info{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\"}, node)",
+          "refId": "host"
+        },
+        "definition": "label_values(kube_pod_info{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\"}, node)",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "allValue": ".+"
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "obs-prometheus"
+        },
+        "query": {
+          "query": "label_values(kube_deployment_spec_replicas{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"@@SERVICE_REGEX@@\"}, deployment)",
+          "refId": "service"
+        },
+        "definition": "label_values(kube_deployment_spec_replicas{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"@@SERVICE_REGEX@@\"}, deployment)",
+        "multi": true,
+        "includeAll": true,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Rancher / Node",
+      "type": "link",
+      "url": "/d/rancher-node-1/rancher-node",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Traces",
+      "type": "link",
+      "url": "/d/@@UID_PREFIX@@traces/traces",
+      "icon": "bolt",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    },
+    {
+      "title": "Actions",
+      "type": "link",
+      "url": "/d/@@UID_PREFIX@@actions/actions",
+      "icon": "apps",
+      "keepTime": true,
+      "includeVars": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Overview (selected services and hosts)",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Services up",
+      "description": "Deployments with at least one ready pod / all selected deployments (kube-state-metrics).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "count(kube_deployment_status_replicas_ready{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"$service\"} > 0) or vector(0)",
+          "legendFormat": "up",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "count(kube_deployment_status_replicas_ready{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"$service\"})",
+          "legendFormat": "total",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total requests/sec",
+      "description": "Sum of HTTP server request rate from OpenTelemetry (http_server_duration_milliseconds_count for Python, http_server_request_duration_seconds_count for Java).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "((sum(rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)) + (sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)))",
+          "legendFormat": "req/s",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Error rate %",
+      "description": "5xx responses / all responses (OTel HTTP server metric).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "100 * ((sum(rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) + (sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\", http_response_status_code=~\"5..\"}[$__rate_interval])) or vector(0))) / ((sum(rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)) + (sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)))",
+          "legendFormat": "5xx %",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Memory (working set)",
+      "description": "Working-set memory of all containers of the selected services (cAdvisor).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum(container_memory_working_set_bytes{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", pod=~\"(${service:regex})-[a-z0-9]+-[a-z0-9]+\", container!=\"\", container!=\"POD\", node=~\"$host\"})",
+          "legendFormat": "working set",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Service: $service",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 1
+      },
+      "repeat": "service"
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Ready replicas",
+      "description": "Ready vs desired pods of the deployment (kube-state-metrics). Drops when a pod is deleted or not ready.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum(kube_deployment_status_replicas_ready{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"$service\"})",
+          "legendFormat": "ready",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum(kube_deployment_spec_replicas{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", deployment=~\"$service\"})",
+          "legendFormat": "desired",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "CPU %",
+      "description": "CPU used by the pod's containers (cAdvisor), 100% = one core.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 7,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", pod=~\"(${service:regex})-[a-z0-9]+-[a-z0-9]+\", container!=\"\", container!=\"POD\", node=~\"$host\"}[$__rate_interval])) * 100",
+          "legendFormat": "{{pod}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Memory working set",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 7,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", pod=~\"(${service:regex})-[a-z0-9]+-[a-z0-9]+\", container!=\"\", container!=\"POD\", node=~\"$host\"})",
+          "legendFormat": "{{pod}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Container restarts",
+      "description": "Restart count per pod (kube-state-metrics). A deleted pod is replaced by a new series starting at 0.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 7,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=~\"@@STACK_NAME@@|@@APP_NAMESPACE@@\", pod=~\"(${service:regex})-[a-z0-9]+-[a-z0-9]+\"})",
+          "legendFormat": "{{pod}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Requests/sec by route",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "(sum by (http_target) (rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval]))) or (label_replace(sum by (http_route) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])), \"http_target\", \"$1\", \"http_route\", \"(.*)\"))",
+          "legendFormat": "{{http_target}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "noValue": "no HTTP metrics (not OTel-instrumented, or no traffic)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Latency p50 / p95",
+      "description": "histogram_quantile over http_server_duration_milliseconds_bucket (Python) or http_server_request_duration_seconds_bucket x 1000 (Java). Diamonds are exemplars: click one to open that request's trace in Tempo.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "(histogram_quantile(0.50, sum by (le) (rate(http_server_duration_milliseconds_bucket{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])))) or (1000 * histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval]))))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "range": true,
+          "instant": false,
+          "exemplar": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "(histogram_quantile(0.95, sum by (le) (rate(http_server_duration_milliseconds_bucket{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])))) or (1000 * histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval]))))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "range": true,
+          "instant": false,
+          "exemplar": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "noValue": "no HTTP metrics (not OTel-instrumented, or no traffic)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Error rate % (5xx / total)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "100 * ((sum(rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\", http_status_code=~\"5..\"}[$__rate_interval])) or vector(0)) + (sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\", http_response_status_code=~\"5..\"}[$__rate_interval])) or vector(0))) / ((sum(rate(http_server_duration_milliseconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)) + (sum(rate(http_server_request_duration_seconds_count{service_name=~\"$service\", instance=~\"$host\"}[$__rate_interval])) or vector(0)))",
+          "legendFormat": "5xx %",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "noValue": "no HTTP metrics (not OTel-instrumented, or no traffic)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Hosts ($host)",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Host CPU %",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "100 * (1 - avg by (nodename) (rate(node_cpu_seconds_total{job=\"node-exporter\", mode=\"idle\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\", nodename=~\"$host\"}))",
+          "legendFormat": "{{nodename}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Host memory used %",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 23,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\", nodename=~\"$host\"}",
+          "legendFormat": "{{nodename}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Disk used % (/)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "100 * (1 - node_filesystem_avail_bytes{job=\"node-exporter\", mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"node-exporter\", mountpoint=\"/\"}) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\", nodename=~\"$host\"}",
+          "legendFormat": "{{nodename}} used %",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Network rx / tx",
+      "description": "Receive positive, transmit negative (node-exporter, physical interfaces).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "obs-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 23,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "sum by (nodename) (rate(node_network_receive_bytes_total{job=\"node-exporter\", device!~\"lo|veth.*|cali.*|vxlan.*|tunl.*\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\", nodename=~\"$host\"})",
+          "legendFormat": "{{nodename}} rx",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "obs-prometheus"
+          },
+          "expr": "-sum by (nodename) (rate(node_network_transmit_bytes_total{job=\"node-exporter\", device!~\"lo|veth.*|cali.*|vxlan.*|tunl.*\"}[$__rate_interval]) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\", nodename=~\"$host\"})",
+          "legendFormat": "{{nodename}} tx",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

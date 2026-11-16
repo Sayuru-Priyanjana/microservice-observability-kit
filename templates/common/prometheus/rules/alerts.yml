@@ -1,0 +1,60 @@
+# Alert rules of the observability kit. Visible in Prometheus /alerts and Grafana (no Alertmanager by default).
+groups:
+  - name: services
+    rules:
+      # OTel HTTP server metrics: Python instrumentation (old HTTP semantic conventions) `or`
+      # Java agent (stable conventions: http_server_request_duration_seconds, http_response_status_code).
+      - alert: HighErrorRate
+        expr: |
+          100 * sum by (service_name) (rate(http_server_duration_milliseconds_count{http_status_code=~"5.."}[5m]))
+            / sum by (service_name) (rate(http_server_duration_milliseconds_count[5m])) > 5
+          or
+          100 * sum by (service_name) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+            / sum by (service_name) (rate(http_server_request_duration_seconds_count[5m])) > 5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service_name }}: {{ printf \"%.1f\" $value }}% of requests fail (5xx)"
+          description: "More than 5% of HTTP requests to {{ $labels.service_name }} returned 5xx over the last 5 minutes."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (service_name, le) (rate(http_server_duration_milliseconds_bucket[5m]))) > 1000
+          or
+          1000 * histogram_quantile(0.95, sum by (service_name, le) (rate(http_server_request_duration_seconds_bucket[5m]))) > 1000
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service_name }}: p95 latency {{ printf \"%.0f\" $value }} ms"
+          description: "95th percentile HTTP latency of {{ $labels.service_name }} is above 1 s for 10 minutes."
+
+  # Collector counters are exposed with or without `_total` depending on the collector
+  # version (0.162 has none), so the names are matched with a regex. A send_failed series
+  # only appears after the first failure.
+  - name: monitoring-pipeline
+    rules:
+      - alert: CollectorDroppingData
+        expr: |
+          sum by (exporter) (rate({__name__=~"otelcol_exporter_send_failed_spans(_total)?"}[5m])) > 0
+          or sum by (exporter) (rate({__name__=~"otelcol_exporter_send_failed_metric_points(_total)?"}[5m])) > 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "OTel gateway collector fails to export data ({{ $labels.exporter }})"
+          description: "Check the otel-gateway logs (@@LOGS_HINT@@) and Tempo / Prometheus health."
+
+      - alert: CollectorRefusingData
+        expr: |
+          sum(rate({__name__=~"otelcol_receiver_refused_spans(_total)?"}[5m])) > 0
+          or sum(rate({__name__=~"otelcol_receiver_refused_metric_points(_total)?"}[5m])) > 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "OTel gateway collector refuses incoming data (memory limit reached?)"
+
+      - alert: PrometheusRuleEvaluationFailures
+        expr: increase(prometheus_rule_evaluation_failures_total[10m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Prometheus fails to evaluate alert rules"
+

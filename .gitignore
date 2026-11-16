@@ -1,0 +1,5 @@
+# generated output and secrets (kit.env has no secrets: keep it in git)
+*.env.local
+out/
+out-*/
+secrets/

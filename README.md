@@ -13,14 +13,14 @@ Helm required: a small bash script renders plain manifests and config files that
 
 ---
 
-## Why this matters
+### Why this matters
 
 Logs and CPU graphs tell you **that** something is wrong. They rarely tell you **where** a slow or
 failed request spent its time once it crossed five services, a message queue and a database. This
 stack records the full path of every request and turns it into numbers you can alert on, so problems
 are found by evidence instead of guesswork.
 
-### Find hidden bugs before users report them
+#### Find hidden bugs before users report them
 
 | Hidden problem | How the stack exposes it |
 |---|---|
@@ -33,7 +33,7 @@ are found by evidence instead of guesswork.
 | **Connection-pool exhaustion** | DB connection pool used vs. max per service — requests queue long before the database is busy |
 | **Pods restarting or starved** | Restarts, CPU and memory per pod / container on the same screen as the service's latency |
 
-### Database monitoring at query level
+#### Database monitoring at query level
 
 The Java agent (and OpenTelemetry SDKs) record **every database call as its own span** — JDBC,
 Hibernate / JPA, R2DBC, MongoDB, Redis, Cassandra, Elasticsearch and more — with no code change:
@@ -50,7 +50,7 @@ Hibernate / JPA, R2DBC, MongoDB, Redis, Cassandra, Elasticsearch and more — wi
 - **Pool vs. query time.** Connection-pool waits (pool metrics) are separated from query execution
   (span duration), so you know whether to tune the pool or the query.
 
-### Optimize with data
+#### Optimize with data
 
 - **Know where the time goes.** Every slow request breaks down into its spans: application code,
   each downstream service, each query. Optimize the span that dominates, not the one you suspect.
@@ -64,7 +64,7 @@ Hibernate / JPA, R2DBC, MongoDB, Redis, Cassandra, Elasticsearch and more — wi
 - **Follow a user action end to end** (optional `user-actions` dashboard): one business action such
   as "submit order" across every service it touches.
 
-### What it found in testing
+#### What it found in testing
 
 During testing on a production microservice platform, traces exposed **critical performance
 issues and hidden bugs that logs, CPU graphs and functional tests had not shown**. Two real traces
@@ -72,7 +72,7 @@ issues and hidden bugs that logs, CPU graphs and functional tests had not shown*
 the **entry service** that received the request, the **permission service**, a second **domain
 service** and a **shared service**.
 
-#### A slow request: 485 ms and 422 spans to read one record
+##### A slow request: 485 ms and 422 spans to read one record
 
 ![Trace of a slow request: one GET fans out into 422 spans across four services, with repeated permission checks and many small database queries](docs/img/trace-slow-request.png)
 
@@ -91,7 +91,7 @@ What the trace shows:
 - **Query-level detail.** Every repository method and its SQL appear with their duration
   (a `findById` followed by its `SELECT`), so N+1 patterns are counted, not guessed.
 
-#### A hidden error: a failing call inside a "successful" request
+##### A hidden error: a failing call inside a "successful" request
 
 ![Trace of a request that returns 200 but contains a failed downstream call, marked with a red error icon](docs/img/trace-error-span.png)
 
@@ -102,7 +102,7 @@ What the trace shows:
   `findById`), and the same **reference data** (application, permission list, user) is loaded with a
   `Session.find` + `SELECT` on **every** call.
 
-#### Optimizations these traces point to
+##### Optimizations these traces point to
 
 | Finding | Optimization |
 |---|---|
@@ -117,7 +117,7 @@ What the trace shows:
 Each fix can be verified with the same dashboards: span count per request, p95 latency per endpoint
 and error spans before and after.
 
-### For the team
+#### For the team
 
 - **Faster incidents:** start from the alert, open the failing traces, see the failing hop — minutes
   instead of hours of log searching across services.
@@ -132,7 +132,7 @@ own tools for those. The query-level view above is from the application's side.
 
 ---
 
-## Contents
+### Contents
 
 - [Why this matters](#why-this-matters)
 - [What you get](#what-you-get)
@@ -158,7 +158,7 @@ own tools for those. The query-level view above is from the application's side.
 
 ---
 
-## What you get
+### What you get
 
 | | |
 |---|---|
@@ -177,7 +177,7 @@ folder and dashboards, filtered to its services.
 
 ---
 
-## How it works
+### How it works
 
 ```mermaid
 flowchart LR
@@ -229,7 +229,7 @@ printed commands**, so every change can be reviewed first (`kubectl diff`, `noma
 
 ---
 
-## Supported platforms
+### Supported platforms
 
 | `TARGET` | Stack runs as | Infra metrics (`INFRA_METRICS=auto`) | App instrumentation |
 |---|---|---|---|
@@ -246,7 +246,7 @@ printed commands**, so every change can be reviewed first (`kubectl diff`, `noma
 
 ---
 
-## Requirements
+### Requirements
 
 **To render** (your workstation or CI): `bash` 4+, `sed`, `awk`. Linux, WSL, Git Bash on Windows;
 on macOS install GNU bash (`brew install bash`).
@@ -265,7 +265,7 @@ OpenTelemetry SDK or auto-instrumentation in the image — see [docs/instrumenta
 
 ---
 
-## Quick start
+### Quick start
 
 ```bash
 git clone <this repository> observability-kit
@@ -313,7 +313,7 @@ KIT_ENV=production.env OUT=out-production ./render.sh
 
 ---
 
-## Deploying with an AI agent
+### Deploying with an AI agent
 
 Two agent-independent prompts in [`prompts/`](prompts/) run the whole process interactively: they
 **ask about the environment and the apps**, write the settings, render, and deploy **one step at a
@@ -336,9 +336,9 @@ for every changing command, never handle passwords or tokens, stop on a failed c
 
 ---
 
-## Configuration reference
+### Configuration reference
 
-### Stack settings — `kit.env`
+#### Stack settings — `kit.env`
 
 An empty value means "use the default". Values are substituted as plain text: quote values with
 spaces; do not use `#`, `&`, `"` or backslashes.
@@ -404,7 +404,7 @@ spaces; do not use `#`, `&`, `"` or backslashes.
 `IMAGE_OTEL_COLLECTOR`, `IMAGE_PROMETHEUS`, `IMAGE_TEMPO`, `IMAGE_GRAFANA`, `IMAGE_JAVA_AGENT`,
 `IMAGE_CADVISOR`, `IMAGE_NODE_EXPORTER`, and `JAVA_AGENT_URL` (jar download for nomad / host).
 
-### App settings — `apps/<app>/app.env`
+#### App settings — `apps/<app>/app.env`
 
 | Setting | Description |
 |---|---|
@@ -439,7 +439,7 @@ of `scrape_configs` entries); they are inserted as-is.
 
 ---
 
-## Adding an app
+### Adding an app
 
 1. `cp -r apps/example apps/<app>` and edit `app.env` ([reference](#app-settings--appsappappenv)).
 2. Add startup-probe overrides for Java deployments with short liveness probes.
@@ -452,11 +452,11 @@ Or let an AI agent do it: [prompts/add-app.md](prompts/add-app.md).
 
 ---
 
-## Deployment per platform
+### Deployment per platform
 
 `./render.sh` prints the exact commands for your settings into `out/NEXT-STEPS.txt`.
 
-### Kubernetes
+#### Kubernetes
 
 ```bash
 # 1. Stack (once per cluster, and after kit.env changes or new apps)
@@ -490,7 +490,7 @@ helm upgrade <release> <chart> -n <namespace> --reuse-values \
 
 Otherwise re-run `apply.sh` after every upgrade.
 
-### Docker Compose
+#### Docker Compose
 
 ```bash
 scp -r out/stack monitoring-host:/opt/observability
@@ -502,7 +502,7 @@ apps on other hosts send to `http://<HOST_LABEL>:4317`. Merge
 `out/apps/<app>/instrumentation/docker-compose.otel.yml` into the app's compose file — a one-shot
 `otel-agent` service copies the Java agent into a volume, the image stays unchanged.
 
-### Nomad
+#### Nomad
 
 ```bash
 # on NOMAD_NODE_NAME: create the host volumes (directories, owners, client config) — see the file
@@ -519,7 +519,7 @@ Run `nomad job run` from `out/stack`: the job reads its config files relative to
 tasks find the gateway as the Nomad service `<STACK_NAME>-otlp`; copy the blocks from
 `out/apps/<app>/instrumentation/otel-task.nomad.hcl` into each task.
 
-### Linux hosts (systemd)
+#### Linux hosts (systemd)
 
 ```bash
 scp -r out/stack monitoring-host:/tmp/observability
@@ -531,14 +531,14 @@ Without internet access, install the binaries first (paths and versions are list
 `-otel-collector`, `-grafana`, `-node-exporter`. Apps get `otel.env` and a systemd drop-in from
 `out/apps/<app>/instrumentation/`.
 
-### Grafana login (bundled)
+#### Grafana login (bundled)
 
 User `admin`; the password is generated once into `secrets/grafana-admin-password` (never committed).
 It only applies when Grafana creates its database — change it in Grafana afterwards.
 
 ---
 
-## Dashboards
+### Dashboards
 
 All dashboards are filtered to the app's services (`SERVICE_REGEX`) and have service / host
 selectors.
@@ -556,7 +556,7 @@ trace, jump to its request / error / latency metrics.
 
 ---
 
-## Alerts
+### Alerts
 
 Evaluated by Prometheus; visible in Prometheus `/alerts` and in Grafana (Alerting → Alert rules).
 No Alertmanager is deployed, so **nothing is sent** until you connect one — see
@@ -572,7 +572,7 @@ No Alertmanager is deployed, so **nothing is sent** until you connect one — se
 
 ---
 
-## Day-2 operations
+### Day-2 operations
 
 | Task | How |
 |---|---|
@@ -588,7 +588,7 @@ troubleshooting, ports, rollback, upgrades).
 
 ---
 
-## Sizing
+### Sizing
 
 | `SIZE` | For | Prometheus | Tempo | Gateway | Grafana |
 |---|---|---|---|---|---|
@@ -607,7 +607,7 @@ app metrics stay complete.
 
 ---
 
-## Security
+### Security
 
 - **Personal data:** the gateway removes URL query strings (e-mails, tokens, search terms) and
   client IP addresses from spans before storage, and drops health-check spans entirely.
@@ -626,7 +626,7 @@ app metrics stay complete.
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
 | Symptom | Check |
 |---|---|
@@ -643,7 +643,7 @@ More: [docs/operations.md](docs/operations.md#troubleshooting) and
 
 ---
 
-## Repository layout
+### Repository layout
 
 ```
 .
@@ -674,7 +674,7 @@ More: [docs/operations.md](docs/operations.md#troubleshooting) and
 
 ---
 
-## How rendering works
+### How rendering works
 
 - Placeholders `@@NAME@@` in templates are replaced with settings (stack settings, then app
   settings, which win).
@@ -692,7 +692,7 @@ every target into scratch folders and check the output (see [Contributing](#cont
 
 ---
 
-## Component versions
+### Component versions
 
 | Component | Version |
 |---|---|
@@ -707,7 +707,7 @@ Production reference: Kubernetes 1.30 (RKE2), Rancher monitoring 105.2.1, kubect
 
 ---
 
-## Status and testing
+### Status and testing
 
 | Platform | Status |
 |---|---|
@@ -722,7 +722,7 @@ Treat the first real deployment on an untested platform as a test, and please re
 
 ---
 
-## Contributing
+### Contributing
 
 1. Change templates, `render.sh` or docs on a branch.
 2. Render every target and Grafana mode into a scratch folder and check the output:

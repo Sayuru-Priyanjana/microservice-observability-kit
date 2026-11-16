@@ -11,8 +11,6 @@ Helm required: a small bash script renders plain manifests and config files that
 > <sub>The Kubernetes path runs in production on a microservice platform of 10 Java services
 > (~260 req/s, Rancher / RKE2). See [Status and testing](#status-and-testing) for the other platforms.</sub>
 
----
-
 ## Why this matters
 
 <sub>Logs and CPU graphs tell you **that** something is wrong. They rarely tell you **where** a slow or
@@ -130,8 +128,6 @@ and error spans before and after.</sub>
 profiling, and no database-server internals (query plans, locks, buffer cache) — use the database's
 own tools for those. The query-level view above is from the application's side.</sub>
 
----
-
 ## Contents
 
 - <sub>[Why this matters](#why-this-matters)</sub>
@@ -156,8 +152,6 @@ own tools for those. The query-level view above is from the application's side.<
 - <sub>[Status and testing](#status-and-testing)</sub>
 - <sub>[Contributing](#contributing)</sub>
 
----
-
 ## What you get
 
 | | |
@@ -174,8 +168,6 @@ own tools for those. The query-level view above is from the application's side.<
 
 <sub>One **stack** per environment is shared by any number of **apps**. Each app gets its own Grafana
 folder and dashboards, filtered to its services.</sub>
-
----
 
 ## How it works
 
@@ -227,8 +219,6 @@ flowchart LR
 <sub>`render.sh` only writes files. **Nothing changes in a cluster or on a server until you run the
 printed commands**, so every change can be reviewed first (`kubectl diff`, `nomad job plan`, `git diff`).</sub>
 
----
-
 ## Supported platforms
 
 | <sub>`TARGET`</sub> | <sub>Stack runs as</sub> | <sub>Infra metrics (`INFRA_METRICS=auto`)</sub> | <sub>App instrumentation</sub> |
@@ -243,8 +233,6 @@ printed commands**, so every change can be reviewed first (`kubectl diff`, `noma
 | <sub>`bundled`</sub> | <sub>You have no Grafana — the kit runs one with datasources and dashboards provisioned</sub> |
 | <sub>`sidecar`</sub> | <sub>Kubernetes Grafana with the dashboard sidecar (Rancher monitoring, kube-prometheus-stack) — dashboards become ConfigMaps, datasources go into its Helm values</sub> |
 | <sub>`api`</sub> | <sub>Any existing Grafana reachable over HTTP — a generated `import.sh` adds datasources and dashboards with a service-account token</sub> |
-
----
 
 ## Requirements
 
@@ -262,8 +250,6 @@ on macOS install GNU bash (`brew install bash`).</sub>
 
 <sub>**Services:** anything that speaks OTLP. Java needs no code change. Other languages need an
 OpenTelemetry SDK or auto-instrumentation in the image — see [docs/instrumentation.md](docs/instrumentation.md).</sub>
-
----
 
 ## Quick start
 
@@ -311,8 +297,6 @@ KIT_ENV=staging.env    OUT=out-staging    ./render.sh
 KIT_ENV=production.env OUT=out-production ./render.sh
 ```
 
----
-
 ## Deploying with an AI agent
 
 <sub>Two agent-independent prompts in [`prompts/`](prompts/) run the whole process interactively: they
@@ -334,9 +318,9 @@ time, asking before every change** and verifying each step.</sub>
 <sub>Rules every agent follows (from `AGENTS.md`): confirm the Kubernetes context first, explicit approval
 for every changing command, never handle passwords or tokens, stop on a failed check.</sub>
 
----
-
 ## Configuration reference
+
+<details><summary><b>Show all settings (stack and app)</b></summary>
 
 ### Stack settings — `kit.env`
 
@@ -437,7 +421,7 @@ startupProbe:
 <sub>**Extra Prometheus scrape jobs:** put them in `extra-scrape.yml` at the repository root (a YAML list
 of `scrape_configs` entries); they are inserted as-is.</sub>
 
----
+</details>
 
 ## Adding an app
 
@@ -450,9 +434,9 @@ of `scrape_configs` entries); they are inserted as-is.</sub>
 
 <sub>Or let an AI agent do it: [prompts/add-app.md](prompts/add-app.md).</sub>
 
----
-
 ## Deployment per platform
+
+<details><summary><b>Show the commands for Kubernetes, Compose, Nomad and Linux hosts</b></summary>
 
 <sub>`./render.sh` prints the exact commands for your settings into `out/NEXT-STEPS.txt`.</sub>
 
@@ -536,7 +520,7 @@ ssh monitoring-host 'cd /tmp/observability && sudo ./install.sh --download'
 <sub>User `admin`; the password is generated once into `secrets/grafana-admin-password` (never committed).
 It only applies when Grafana creates its database — change it in Grafana afterwards.</sub>
 
----
+</details>
 
 ## Dashboards
 
@@ -554,8 +538,6 @@ selectors.</sub>
 <sub>From any latency graph, click an **exemplar** dot to open the trace behind it; from a span in a
 trace, jump to its request / error / latency metrics.</sub>
 
----
-
 ## Alerts
 
 <sub>Evaluated by Prometheus; visible in Prometheus `/alerts` and in Grafana (Alerting → Alert rules).
@@ -570,8 +552,6 @@ No Alertmanager is deployed, so **nothing is sent** until you connect one — se
 | <sub>`CollectorRefusingData`</sub> | <sub>the gateway refuses data (memory limit reached)</sub> |
 | <sub>`PrometheusRuleEvaluationFailures`</sub> | <sub>an alert rule fails to evaluate</sub> |
 
----
-
 ## Day-2 operations
 
 | <sub>Task</sub> | <sub>How</sub> |
@@ -585,8 +565,6 @@ No Alertmanager is deployed, so **nothing is sent** until you connect one — se
 
 <sub>Full guide: **[docs/operations.md](docs/operations.md)** (re-applying per target, alerts, capacity,
 troubleshooting, ports, rollback, upgrades).</sub>
-
----
 
 ## Sizing
 
@@ -605,8 +583,6 @@ Tempo peaked at 2Gi.</sub>
 <sub>High traffic: lower `TRACE_SAMPLE_RATIO` before adding memory — traces and span metrics shrink,
 app metrics stay complete.</sub>
 
----
-
 ## Security
 
 - <sub>**Personal data:** the gateway removes URL query strings (e-mails, tokens, search terms) and
@@ -624,9 +600,9 @@ app metrics stay complete.</sub>
 - <sub>**Retention:** traces are kept for `TEMPO_RETENTION` (24 h by default) — keep it short if span names
   or attributes may contain personal data.</sub>
 
----
-
 ## Troubleshooting
+
+<details><summary><b>Show symptoms and checks</b></summary>
 
 | <sub>Symptom</sub> | <sub>Check</sub> |
 |---|---|
@@ -641,9 +617,11 @@ app metrics stay complete.</sub>
 <sub>More: [docs/operations.md](docs/operations.md#troubleshooting) and
 [docs/instrumentation.md](docs/instrumentation.md#checking-a-service).</sub>
 
----
+</details>
 
 ## Repository layout
+
+<details><summary><b>Show the folder structure</b></summary>
 
 ```
 .
@@ -672,7 +650,7 @@ app metrics stay complete.</sub>
 └── secrets/                       # generated Grafana password (git-ignored)
 ```
 
----
+</details>
 
 ## How rendering works
 
@@ -690,8 +668,6 @@ app metrics stay complete.</sub>
 <sub>To change behaviour, edit the templates and re-render. Before committing a template change, render
 every target into scratch folders and check the output (see [Contributing](#contributing)).</sub>
 
----
-
 ## Component versions
 
 | <sub>Component</sub> | <sub>Version</sub> |
@@ -705,8 +681,6 @@ every target into scratch folders and check the output (see [Contributing](#cont
 
 <sub>Production reference: Kubernetes 1.30 (RKE2), Rancher monitoring 105.2.1, kubectl 1.34.</sub>
 
----
-
 ## Status and testing
 
 | <sub>Platform</sub> | <sub>Status</sub> |
@@ -719,8 +693,6 @@ every target into scratch folders and check the output (see [Contributing](#cont
 
 <sub>Every target × Grafana mode combination renders without errors and all YAML / JSON output parses.
 Treat the first real deployment on an untested platform as a test, and please report what you find.</sub>
-
----
 
 ## Contributing
 
